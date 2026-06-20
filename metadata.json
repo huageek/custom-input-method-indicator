@@ -1,11 +1,10 @@
 {
   "name": "Custom Input Method Indicator",
-  "gettext-domain": "custom-input-method-indicator",
-  "description": "GNOME standard modular extension, no hijacking, with debug logs",
+  "description": "Customize CapsLock, English and Native input indicator text, font size, color and bold weight, pure native logic without hijacking GNOME keyboard widget.",
   "settings-schema": "org.gnome.shell.extensions.custominputmethodindicator",
   "url": "https://github.com/huageek/custom-input-method-indicator",
   "uuid": "custom-input-method-indicator@huageek",
-  "shell-version": ["45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "60"],
+  "shell-version": ["45", "46", "47", "48", "49", "50"],
   "version": "1.0"
 }
 

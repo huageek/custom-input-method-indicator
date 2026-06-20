@@ -128,6 +128,10 @@ export default class CustomInputMethodIndicator extends Extension {
         if (ENABLE_LOG) log("=== CustomInputMethodIndicator disabled ===");
         this._signals.forEach(s => s.target.disconnect(s.id));
         this._signals = [];
+        this._settings = null;
+        this._oldText = null;
+        this._curText = null;
+        this._keymap = null;
     }
 }
 
