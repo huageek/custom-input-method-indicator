@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+<schema id="org.gnome.shell.extensions.custominputmethodindicator" path="/org/gnome/shell/extensions/custominputmethodindicator/">
+    <!-- CapsLock -->
+    <key name="text-caps" type="s"><default>""</default></key>
+    <key name="size-caps" type="s"><default>""</default></key>
+    <key name="color-custom-caps" type="s"><default>""</default></key>
+    <key name="bold-caps" type="b"><default>true</default></key>
+
+    <!-- English -->
+    <key name="text-lower" type="s"><default>""</default></key>
+    <key name="size-lower" type="s"><default>""</default></key>
+    <key name="color-custom-lower" type="s"><default>""</default></key>
+    <key name="bold-lower" type="b"><default>false</default></key>
+
+    <!-- Native -->
+    <key name="text-native" type="s"><default>""</default></key>
+    <key name="size-native" type="s"><default>""</default></key>
+    <key name="color-custom-native" type="s"><default>""</default></key>
+    <key name="bold-native" type="b"><default>false</default></key>
+</schema>
+</schemalist>
+
