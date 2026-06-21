@@ -3,42 +3,51 @@ import Clutter from 'gi://Clutter';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
-// Global log toggle: true = print logs, false = mute all logs
-const ENABLE_LOG = false;
-
+// 调试总开关
+const ENABLE_DEBUG = false;
 const ENGLISH_MODES = ['A', 'en', 'EN', 'En', 'Eng', 'ENG', 'eng', '英', '英文', '英数', 'Ｅｎｇ', '영'];
 
-// 关键修复：补上 extends Extension
+// 日志统一封装（解决第3条：不用到处判断开关）
+function debugMsg(...args) {
+    if (ENABLE_DEBUG) console.debug('[CustomInputMethodIndicator]', ...args);
+}
+function errorMsg(...args) {
+    console.error('[CustomInputMethodIndicator]', ...args);
+}
+
 export default class CustomInputMethodIndicator extends Extension {
-    enable() {
-        if (ENABLE_LOG) log("=== CustomInputMethodIndicator enabled ===");
-        this._signals = [];
+    constructor(metadata) {
+        super(metadata);
         this._oldText = '';
         this._curText = '';
         this._lastCaps = false;
+        this._settings = null;
+        this._keymap = null;
+        this._imManager = null; // 初始化实例属性
+    }
+
+    enable() {
+        debugMsg("Extension enabled");
         this._settings = this.getSettings();
         this._updateStyle();
-        try {
-            const kb = Main.panel.statusArea.keyboard;
-            const imManager = kb._inputSourceManager;
-            this._keymap = Clutter.get_default_backend().get_default_seat().get_keymap();
-            this._connect(this._keymap, 'state-changed', () => {
-                this._updateIndicator("caps");
-            });
-            this._connect(imManager, 'current-source-changed', () => {
-                this._updateIndicator("switch");
-            });
-            this._connect(this._settings, 'changed', () => {
-                this._updateStyle();
-                this._updateIndicator("settings");
-            });
-            this._updateIndicator("init");
-        } catch (e) {
-            logError('CustomInputMethodIndicator enable error：', e);
-        }
+
+        const kb = Main.panel.statusArea.keyboard;
+        this._imManager = kb._inputSourceManager; // 赋值给实例属性
+        this._keymap = Clutter.get_default_backend().get_default_seat().get_keymap();
+
+        // 改用 connectObject，自动绑定this，disable无需手动遍历数组（解决第1条）
+        this._keymap.connectObject('state-changed', () => this._updateIndicator("caps"), this);
+        this._imManager.connectObject('current-source-changed', () => this._updateIndicator("switch"), this);
+        this._settings.connectObject('changed', () => {
+            this._updateStyle();
+            this._updateIndicator("settings");
+        }, this);
+
+        this._updateIndicator("init");
     }
+
     _updateStyle() {
-        if (ENABLE_LOG) log("CustomInputMethodIndicator: Load config and update style");
+        debugMsg("Load config");
         this.caps = {
             text: this._settings.get_string('text-caps'),
             size: parseInt(this._settings.get_string('size-caps') || 0),
@@ -58,47 +67,50 @@ export default class CustomInputMethodIndicator extends Extension {
             bold: this._settings.get_boolean('bold-native'),
         };
     }
+
     _updateIndicator(triggerSource) {
         try {
             const isCaps = this._keymap.get_caps_lock_state();
             if (triggerSource === "caps" && this._lastCaps === isCaps) return;
             this._lastCaps = isCaps;
-            if (ENABLE_LOG) log("CustomInputMethodIndicator triggered by：" + triggerSource);
+            debugMsg("Trigger source:", triggerSource);
+
             const kb = Main.panel.statusArea?.keyboard;
             if (!kb) return;
-            const curSource = kb._inputSourceManager?.currentSource;
+            const curSource = this._imManager?.currentSource; // 改用实例属性
             if (!curSource) return;
             const label = kb._container.get_child_at_index(curSource.index);
             if (!label) return;
+
             this._curText = label.get_text();
-            if (ENABLE_LOG) log("CustomInputMethodIndicator panel text：" + this._curText + ", old text: " + this._oldText);
-            if (ENABLE_LOG) log("CustomInputMethodIndicator CapsLock：" + isCaps);
+            debugMsg("Panel text:", this._curText, "oldText:", this._oldText, "Caps:", isCaps);
+
             if (isCaps) {
                 if (triggerSource.includes("switch")) {
                     if (this._curText !== this.caps.text) {
                         this._oldText = this._curText;
-                        if (ENABLE_LOG) log("CustomInputMethodIndicator update old text：" + this._oldText);
+                        debugMsg("Save original text:", this._oldText);
                     }
                 } else if (this._oldText === "") {
                     this._oldText = this._curText;
-                    if (ENABLE_LOG) log("CustomInputMethodIndicator update old text：" + this._oldText);
+                    debugMsg("Save original text:", this._oldText);
                 }
-                if (ENABLE_LOG) log("CustomInputMethodIndicator: Mode = CapsLock\n");
+                debugMsg("Mode: CapsLock");
                 if (this.caps.text === "") this.caps.text = "A";
                 label.set_text(this.caps.text);
                 label.set_style(this._buildStyle(this.caps));
             } else {
                 if (this._curText === this.caps.text && this._oldText !== "") {
                     this._curText = this._oldText;
-                    if (ENABLE_LOG) log("CustomInputMethodIndicator: restore old text：" + this._oldText);
+                    debugMsg("Restore original text:", this._oldText);
                 }
                 if (ENGLISH_MODES.includes(this._curText)) {
-                    if (ENABLE_LOG) log("CustomInputMethodIndicator: Mode = English\n");
+                    debugMsg("Mode: English");
                     if (this.lower.text === "") this.lower.text = "En";
                     label.set_text(this.lower.text);
                     label.set_style(this._buildStyle(this.lower));
                 } else {
-                    if (ENABLE_LOG) log("CustomInputMethodIndicator: Mode = Native\n");
+                    debugMsg("Mode: Native");
                     const showText = this.native.text || this._curText;
                     label.set_text(showText);
                     label.set_style(this._buildStyle(this.native));
@@ -106,9 +118,10 @@ export default class CustomInputMethodIndicator extends Extension {
                 this._oldText = "";
             }
         } catch (e) {
-            logError("CustomInputMethodIndicator execution error：", e);
+            errorMsg("Update indicator error", e);
         }
     }
+
     _buildStyle(conf) {
         let style = '';
         if (conf.size > 0) {
@@ -120,18 +133,20 @@ export default class CustomInputMethodIndicator extends Extension {
         }
         return style;
     }
-    _connect(target, signal, callback) {
-        const id = target.connect(signal, callback);
-        this._signals.push({ target, id });
-    }
+
     disable() {
-        if (ENABLE_LOG) log("=== CustomInputMethodIndicator disabled ===");
-        this._signals.forEach(s => s.target.disconnect(s.id));
-        this._signals = [];
+        debugMsg("Extension disabled");
+        // connectObject 绑定后，disconnectObject一键清空所有信号，无需手动维护数组
+        this._keymap?.disconnectObject(this);
+        this._imManager?.disconnectObject(this); // 改用实例属性，加空值保护
+        this._settings?.disconnectObject(this);
+        // 释放GObject引用，消除EGO-L-005警告
         this._settings = null;
+        this._keymap = null;
+        this._imManager = null; // 释放实例属性
         this._oldText = null;
         this._curText = null;
-        this._keymap = null;
+        this._lastCaps = false;
     }
 }
 
