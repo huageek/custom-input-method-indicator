@@ -7,7 +7,6 @@ import {
 } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 const CONTROL_WIDTH = 170;
-// GTK4 fixed constants：VERTICAL=1 HORIZONTAL=0
 const ORI_VERT = 1;
 const ORI_HORI = 0;
 

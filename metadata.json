@@ -5,7 +5,7 @@
   "url": "https://github.com/huageek/custom-input-method-indicator",
   "uuid": "custom-input-method-indicator@huageek",
   "shell-version": ["45", "46", "47", "48", "49", "50"],
-  "version": "1.0",
+  "version": 3,
   "donations": {
     "github": "huageek"
   }

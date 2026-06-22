@@ -3,11 +3,9 @@ import Clutter from 'gi://Clutter';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
-// 调试总开关
 const ENABLE_DEBUG = false;
 const ENGLISH_MODES = ['A', 'en', 'EN', 'En', 'Eng', 'ENG', 'eng', '英', '英文', '英数', 'Ｅｎｇ', '영'];
 
-// 日志统一封装（解决第3条：不用到处判断开关）
 function debugMsg(...args) {
     if (ENABLE_DEBUG) console.debug('[CustomInputMethodIndicator]', ...args);
 }
@@ -23,7 +21,7 @@ export default class CustomInputMethodIndicator extends Extension {
         this._lastCaps = false;
         this._settings = null;
         this._keymap = null;
-        this._imManager = null; // 初始化实例属性
+        this._imManager = null;
     }
 
     enable() {
@@ -32,10 +30,9 @@ export default class CustomInputMethodIndicator extends Extension {
         this._updateStyle();
 
         const kb = Main.panel.statusArea.keyboard;
-        this._imManager = kb._inputSourceManager; // 赋值给实例属性
+        this._imManager = kb._inputSourceManager;
         this._keymap = Clutter.get_default_backend().get_default_seat().get_keymap();
 
-        // 改用 connectObject，自动绑定this，disable无需手动遍历数组（解决第1条）
         this._keymap.connectObject('state-changed', () => this._updateIndicator("caps"), this);
         this._imManager.connectObject('current-source-changed', () => this._updateIndicator("switch"), this);
         this._settings.connectObject('changed', () => {
@@ -77,7 +74,7 @@ export default class CustomInputMethodIndicator extends Extension {
 
             const kb = Main.panel.statusArea?.keyboard;
             if (!kb) return;
-            const curSource = this._imManager?.currentSource; // 改用实例属性
+            const curSource = this._imManager?.currentSource;
             if (!curSource) return;
             const label = kb._container.get_child_at_index(curSource.index);
             if (!label) return;
@@ -136,14 +133,12 @@ export default class CustomInputMethodIndicator extends Extension {
 
     disable() {
         debugMsg("Extension disabled");
-        // connectObject 绑定后，disconnectObject一键清空所有信号，无需手动维护数组
         this._keymap?.disconnectObject(this);
-        this._imManager?.disconnectObject(this); // 改用实例属性，加空值保护
+        this._imManager?.disconnectObject(this);
         this._settings?.disconnectObject(this);
-        // 释放GObject引用，消除EGO-L-005警告
         this._settings = null;
         this._keymap = null;
-        this._imManager = null; // 释放实例属性
+        this._imManager = null;
         this._oldText = null;
         this._curText = null;
         this._lastCaps = false;
